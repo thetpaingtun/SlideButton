@@ -1,5 +1,6 @@
 package me.thet.slidebutton
 
+import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
@@ -24,7 +25,7 @@ class SlideButtonView @JvmOverloads constructor(
     private var mDrawableArrow: Drawable?
     private var drawableSize: Float
 
-    private var borderRadius: Float = 0f
+    private var containerBorderRadius: Float = 0f
     private var innerBorderRadius: Float = 0f
     private var MARGIN_BETWEEN_OUTER_INNER = context.dp(6f)
 
@@ -35,10 +36,12 @@ class SlideButtonView @JvmOverloads constructor(
     private val vc: ViewConfiguration
     private val touchSlop: Int
 
+    private var outContainerPos = 0f
+
     private var mCurrentCx: Float = 0f
         set(value) {
             field = value
-            mPositionPercent = (((field - mCxStart) / (mCxEnd - mCxStart)) * 100).toInt()
+            mDragPercent = (((field - mCxStart) / (mCxEnd - mCxStart)) * 100).toInt()
         }
     private var mInitCy: Float = 0f
 
@@ -46,10 +49,13 @@ class SlideButtonView @JvmOverloads constructor(
     private var mCxStart: Float = 0.0f
     private var mCxEnd: Float = 0f
 
-    private var mPositionPercent = 0
+    private var mDragPercent = 0
 
 
     private val DEFAULT_HEIGHT = context.dp(65f).toInt()
+    private val DEFAULT_WIDTH = context.dp(300f).toInt()
+
+    private var isDragComplete = false
 
 
     private var lastX = 0f
@@ -84,24 +90,23 @@ class SlideButtonView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val height = resolveSize(DEFAULT_HEIGHT, heightMeasureSpec)
-        val width = resolveSize(width, widthMeasureSpec)
+        val width = resolveSize(DEFAULT_WIDTH, widthMeasureSpec)
         setMeasuredDimension(width, height)
-
-        Logger.d("on measure =>")
     }
 
     override fun onDraw(canvas: Canvas?) {
         if (canvas == null) return
 
         canvas.drawRoundRect(
+            0f + outContainerPos,
             0f,
-            0f,
-            width.toFloat(),
+            width.toFloat() - outContainerPos,
             height.toFloat(),
-            borderRadius,
-            borderRadius,
+            containerBorderRadius,
+            containerBorderRadius,
             containerPaint
         )
+
 
         canvas.drawCircle(mCurrentCx, mInitCy, innerBorderRadius, paint)
 
@@ -111,25 +116,24 @@ class SlideButtonView @JvmOverloads constructor(
         val right = left + drawableSize.toInt()
         val bottom = top + drawableSize.toInt()
 
-
-
         mDrawableArrow?.setBounds(
             left,
             top,
             right,
             bottom
         )
-        mDrawableArrow?.draw(canvas)
-
+        if (innerBorderRadius != 0f) {
+            mDrawableArrow?.draw(canvas)
+        }
 
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        borderRadius = (DEFAULT_HEIGHT.toFloat() / 2)
+        containerBorderRadius = (height.toFloat() / 2)
 
-        innerBorderRadius = borderRadius - MARGIN_BETWEEN_OUTER_INNER
+        innerBorderRadius = containerBorderRadius - MARGIN_BETWEEN_OUTER_INNER
 
 
         mCurrentCx = innerBorderRadius + MARGIN_BETWEEN_OUTER_INNER
@@ -146,7 +150,14 @@ class SlideButtonView @JvmOverloads constructor(
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     lastX = eventX
-                    if (isInsideCircle(mCurrentCx, mInitCy, eventX, eventY, innerBorderRadius)) {
+                    if (!isDragComplete && isInsideCircle(
+                            mCurrentCx,
+                            mInitCy,
+                            eventX,
+                            eventY,
+                            innerBorderRadius
+                        )
+                    ) {
                         return true
                     }
                 }
@@ -158,15 +169,53 @@ class SlideButtonView @JvmOverloads constructor(
                     return true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (mPositionPercent < 100) {
-                        rollBackToStartPosition()
-                    }
+                    onActionUp()
                     return true
                 }
                 else -> return false
             }
         }
         return super.onTouchEvent(event)
+    }
+
+    private fun onActionUp() {
+        if (mDragPercent < 100) {
+            rollBackToStartPosition()
+        } else {
+            onDragCompleted()
+        }
+    }
+
+    private fun onDragCompleted() {
+        isDragComplete = true
+
+        val innerCircleAnimator = ValueAnimator.ofFloat(innerBorderRadius, 0f)
+
+        innerCircleAnimator.apply {
+            addUpdateListener {
+                innerBorderRadius = it.animatedValue as Float
+                invalidate()
+            }
+            startDelay = 100
+            duration = 100
+        }
+
+
+        val collapseAnimator = ValueAnimator.ofFloat(0f, (width - height) / 2f)
+        collapseAnimator.addUpdateListener {
+            outContainerPos = it.animatedValue as Float
+            invalidate()
+        }
+
+        collapseAnimator.apply {
+            duration = 400
+        }
+
+        val animatorSet = AnimatorSet()
+        animatorSet.playSequentially(innerCircleAnimator, collapseAnimator)
+        animatorSet.start()
+
+
     }
 
     private fun rollBackToStartPosition() {
