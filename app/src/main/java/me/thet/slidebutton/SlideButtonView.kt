@@ -1,5 +1,6 @@
 package me.thet.slidebutton
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -16,7 +17,7 @@ import java.lang.Math.pow
  * Created by thet on 8/4/2020.
  *
  */
-class TouchEventView @JvmOverloads constructor(
+class SlideButtonView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
@@ -34,12 +35,18 @@ class TouchEventView @JvmOverloads constructor(
     private val vc: ViewConfiguration
     private val touchSlop: Int
 
-    private var mInitCx: Float = 0f
+    private var mCurrentCx: Float = 0f
+        set(value) {
+            field = value
+            mPositionPercent = (((field - mCxStart) / (mCxEnd - mCxStart)) * 100).toInt()
+        }
     private var mInitCy: Float = 0f
 
     //the range that inner circle can be dragged
     private var mCxStart: Float = 0.0f
     private var mCxEnd: Float = 0f
+
+    private var mPositionPercent = 0
 
 
     private val DEFAULT_HEIGHT = context.dp(65f).toInt()
@@ -96,10 +103,10 @@ class TouchEventView @JvmOverloads constructor(
             containerPaint
         )
 
-        canvas.drawCircle(mInitCx, mInitCy, innerBorderRadius, paint)
+        canvas.drawCircle(mCurrentCx, mInitCy, innerBorderRadius, paint)
 
 
-        val left = (mInitCx - (drawableSize / 2)).toInt()
+        val left = (mCurrentCx - (drawableSize / 2)).toInt()
         val top = (mInitCy - (drawableSize / 2)).toInt()
         val right = left + drawableSize.toInt()
         val bottom = top + drawableSize.toInt()
@@ -112,7 +119,7 @@ class TouchEventView @JvmOverloads constructor(
             right,
             bottom
         )
-        mDrawableArrow?.draw(canvas);
+        mDrawableArrow?.draw(canvas)
 
 
     }
@@ -125,10 +132,10 @@ class TouchEventView @JvmOverloads constructor(
         innerBorderRadius = borderRadius - MARGIN_BETWEEN_OUTER_INNER
 
 
-        mInitCx = innerBorderRadius + MARGIN_BETWEEN_OUTER_INNER
+        mCurrentCx = innerBorderRadius + MARGIN_BETWEEN_OUTER_INNER
         mInitCy = h / 2f
 
-        mCxStart = mInitCx
+        mCxStart = mCurrentCx
         mCxEnd = w - MARGIN_BETWEEN_OUTER_INNER - innerBorderRadius
     }
 
@@ -138,34 +145,53 @@ class TouchEventView @JvmOverloads constructor(
             val eventY = event.y
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    Logger.d(
-                        "inside => ${isInsideCircle(
-                            mInitCx,
-                            mInitCy,
-                            eventX,
-                            eventY,
-                            100f
-                        )}"
-                    )
-                    Logger.d("inside => $eventX")
                     lastX = eventX
-                    if (isInsideCircle(mInitCx, mInitCy, eventX, eventY, innerBorderRadius)) {
+                    if (isInsideCircle(mCurrentCx, mInitCy, eventX, eventY, innerBorderRadius)) {
                         return true
                     }
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    if (Math.abs(eventX - lastX) > touchSlop && eventX > mCxStart && eventX < mCxEnd) {
-                        mInitCx = eventX
-                        lastX = eventX
-                        invalidate()
-                        return true
+                    val diffX = eventX - lastX
+                    lastX = eventX
+                    movePosition(diffX)
+                    invalidate()
+                    return true
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (mPositionPercent < 100) {
+                        rollBackToStartPosition()
                     }
-                    return false
+                    return true
                 }
                 else -> return false
             }
         }
         return super.onTouchEvent(event)
+    }
+
+    private fun rollBackToStartPosition() {
+        val animator = ValueAnimator.ofFloat(mCurrentCx, mCxStart)
+
+        animator.addUpdateListener {
+            mCurrentCx = it.animatedValue as Float
+            invalidate()
+        }
+
+        animator.duration = 300
+        animator.start()
+    }
+
+    private fun movePosition(diff: Float) {
+        val newPos = mCurrentCx + diff
+        mCurrentCx += diff
+        mCurrentCx =
+            if (newPos < mCxStart) {
+                mCxStart
+            } else if (newPos > mCxEnd) {
+                mCxEnd
+            } else {
+                newPos
+            }
     }
 
     private fun isInsideCircle(
@@ -175,12 +201,12 @@ class TouchEventView @JvmOverloads constructor(
         touchY: Float,
         radius: Float
     ): Boolean {
-        return (pow((circleX - touchX).toDouble(), 2.0) + pow(
-            (circleY - touchY).toDouble(),
-            2.0
-        )) <= pow(
-            radius.toDouble(), 2.0
-        )
-    }
 
+        return Math.sqrt(
+            pow(
+                (touchX - circleX).toDouble(),
+                2.0
+            ) + pow((touchY - circleY).toDouble(), 2.0)
+        ) < radius
+    }
 }
