@@ -3,13 +3,11 @@ package me.thet.slidebutton
 import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
+import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.*
+import android.view.animation.Animation
 import androidx.core.content.ContextCompat
 import java.lang.Math.pow
 
@@ -22,8 +20,15 @@ class SlideButtonView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    private var mProgressSweepAngle: Float = 240f
+    private var mProgressStartAngle: Float = 0f
+    private var mProgressAlpha: Int = 0
+    private lateinit var mProgressRect: RectF
     private var mDrawableArrow: Drawable?
     private var drawableSize: Float
+
+    private var mProgressDrawable: Drawable?
+    private var progressDrawableSize: Float
 
     private var containerBorderRadius: Float = 0f
     private var innerBorderRadius: Float = 0f
@@ -32,6 +37,7 @@ class SlideButtonView @JvmOverloads constructor(
     private val path: Path
     private val paint: Paint
     private val containerPaint: Paint
+    private val progressPaint: Paint
 
     private val vc: ViewConfiguration
     private val touchSlop: Int
@@ -73,19 +79,26 @@ class SlideButtonView @JvmOverloads constructor(
 
         containerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
             .apply {
-                color = ContextCompat.getColor(context, R.color.colorPrimaryDark)
+                color = ContextCompat.getColor(context, R.color.colorGreen)
                 style = Paint.Style.FILL
             }
 
+        progressPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+            .apply {
+                color = Color.WHITE
+                strokeWidth = context.dp(4f)
+                style = Paint.Style.STROKE
+            }
 
         drawableSize = context.dp(20f)
+        progressDrawableSize = context.dp(24f)
 
         vc = ViewConfiguration.get(context)
         touchSlop = vc.scaledTouchSlop
 
 
         mDrawableArrow = ContextCompat.getDrawable(context, R.drawable.ic_arrows)
-
+        mProgressDrawable = ContextCompat.getDrawable(context, R.drawable.ic_progress_circle)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -122,9 +135,24 @@ class SlideButtonView @JvmOverloads constructor(
             right,
             bottom
         )
+
+
         if (innerBorderRadius != 0f) {
             mDrawableArrow?.draw(canvas)
         }
+
+
+        progressPaint.alpha = mProgressAlpha
+        canvas.drawArc(
+            mProgressRect, mProgressStartAngle,
+            mProgressSweepAngle, false, progressPaint
+        )
+
+/*        canvas.save()
+        canvas.rotate(progressDegree, mProgressRect.left.toFloat(), mProgressRect.top.toFloat())
+        mProgressDrawable?.draw(canvas)
+        canvas.restore()*/
+
 
     }
 
@@ -141,6 +169,17 @@ class SlideButtonView @JvmOverloads constructor(
 
         mCxStart = mCurrentCx
         mCxEnd = w - MARGIN_BETWEEN_OUTER_INNER - innerBorderRadius
+
+        val progressLeft = (width / 2) - (progressDrawableSize / 2)
+        val progressRight = progressLeft + progressDrawableSize
+        val progressTop = (height / 2) - (progressDrawableSize / 2)
+        val progressBottom = progressTop + progressDrawableSize
+        mProgressRect = RectF(
+            progressLeft,
+            progressTop,
+            progressRight,
+            progressBottom
+        )
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -191,6 +230,7 @@ class SlideButtonView @JvmOverloads constructor(
 
         val innerCircleAnimator = ValueAnimator.ofFloat(innerBorderRadius, 0f)
 
+        //remove inner circle
         innerCircleAnimator.apply {
             addUpdateListener {
                 innerBorderRadius = it.animatedValue as Float
@@ -201,20 +241,43 @@ class SlideButtonView @JvmOverloads constructor(
         }
 
 
+        //collapse container
         val collapseAnimator = ValueAnimator.ofFloat(0f, (width - height) / 2f)
         collapseAnimator.addUpdateListener {
             outContainerPos = it.animatedValue as Float
             invalidate()
         }
 
-        collapseAnimator.apply {
-            duration = 400
+        collapseAnimator.duration = 400
+
+
+        // progress circle visibility
+        val progressVisibilityAnimator = ValueAnimator.ofInt(0, 255)
+        progressVisibilityAnimator.addUpdateListener {
+            mProgressAlpha = it.animatedValue as Int
+            invalidate()
         }
+        progressVisibilityAnimator.duration = 300
+
+        val progressRotationAnimator = ValueAnimator.ofFloat(0f, 360f)
+        progressRotationAnimator.addUpdateListener {
+            mProgressStartAngle = it.animatedValue as Float
+            invalidate()
+        }
+        progressRotationAnimator.repeatCount = Animation.INFINITE
+        progressRotationAnimator.duration = 300
+
+        val progressAnimatorSet = AnimatorSet()
+        progressAnimatorSet.playTogether(progressVisibilityAnimator, progressRotationAnimator)
+
 
         val animatorSet = AnimatorSet()
-        animatorSet.playSequentially(innerCircleAnimator, collapseAnimator)
+        animatorSet.playSequentially(
+            innerCircleAnimator,
+            collapseAnimator,
+            progressAnimatorSet
+        )
         animatorSet.start()
-
 
     }
 
