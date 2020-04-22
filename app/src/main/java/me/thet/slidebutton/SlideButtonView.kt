@@ -21,6 +21,7 @@ class SlideButtonView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private var MARGIN_BETWEEN_CONTAINER_CURSOR = context.dp(6f)
+    private var MARGIN_BETWEEN_CURSOR_SHADOW = context.dp(10f)
 
     private val DEFAULT_HEIGHT = context.dp(65f).toInt()
     private val DEFAULT_WIDTH = context.dp(300f).toInt()
@@ -36,7 +37,7 @@ class SlideButtonView @JvmOverloads constructor(
 
 
     private var mDrawableCursor: Drawable?
-    private var mDrawableSize: Float
+    private var mCursorDrawableSize: Float
 
 
     private var mContainerBorderRadius: Float = 0f
@@ -47,9 +48,13 @@ class SlideButtonView @JvmOverloads constructor(
     private val mContainerPaint: Paint
     private val mProgressPaint: Paint
     private val mLabelPaint: Paint
+    private val mShadowPaint: Paint
 
     private val vc: ViewConfiguration
     private val touchSlop: Int
+
+
+    private var drawShadow: Boolean = false
 
 
     private var mCurrentCursorX: Float = 0f
@@ -105,7 +110,12 @@ class SlideButtonView @JvmOverloads constructor(
             color = Color.WHITE
         }
 
-        mDrawableSize = context.dp(20f)
+        mShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = context.getColorRes(R.color.colorGreen)
+            style = Paint.Style.FILL
+        }
+
+        mCursorDrawableSize = context.dp(20f)
         mProgressDrawableSize = context.dp(24f)
 
         vc = ViewConfiguration.get(context)
@@ -142,15 +152,37 @@ class SlideButtonView @JvmOverloads constructor(
         Logger.d("percent => " + mDragPercent)
         canvas.drawText("Order Collected", mLabelStartX, mLabelStartY, mLabelPaint)
 
+
+        if (drawShadow) {
+            var cursorShadowRight =
+                mCurrentCursorX + (mCursorCircleBorderRadius) + MARGIN_BETWEEN_CURSOR_SHADOW
+
+            if (cursorShadowRight >= width) {
+                cursorShadowRight = width.toFloat()
+            }
+
+            //cursor shadow
+            canvas.drawRoundRect(
+                0f,
+                0f,
+                cursorShadowRight,
+                height.toFloat(),
+                mContainerBorderRadius,
+                mContainerBorderRadius,
+                mShadowPaint
+            )
+        }
+
+
         //base cursor circle
         canvas.drawCircle(mCurrentCursorX, mCursorY, mCursorCircleBorderRadius, mCursorPaint)
 
 
         //draw cursor icon
-        val left = (mCurrentCursorX - (mDrawableSize / 2)).toInt()
-        val top = (mCursorY - (mDrawableSize / 2)).toInt()
-        val right = left + mDrawableSize.toInt()
-        val bottom = top + mDrawableSize.toInt()
+        val left = (mCurrentCursorX - (mCursorDrawableSize / 2)).toInt()
+        val top = (mCursorY - (mCursorDrawableSize / 2)).toInt()
+        val right = left + mCursorDrawableSize.toInt()
+        val bottom = top + mCursorDrawableSize.toInt()
 
         mDrawableCursor?.setBounds(
             left,
@@ -176,14 +208,12 @@ class SlideButtonView @JvmOverloads constructor(
             mContainerPaint
         )*/
 
-        //progress circle ( will appear after dragged 100%
+        //progress circle ( will appear after dragged 100%)
         mProgressPaint.alpha = mProgressAlpha
         canvas.drawArc(
             mProgressRect, mProgressStartAngle,
             mProgressSweepAngle, false, mProgressPaint
         )
-
-
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -218,6 +248,23 @@ class SlideButtonView @JvmOverloads constructor(
 
         mLabelStartX = (width / 2) - (labelWidth / 2)
         mLabelStartY = (height / 2) + (labelHeight / 2f)
+
+
+        mContainerPaint.setShader(
+            LinearGradient(
+                0f,
+                0f,
+                width.toFloat(),
+                height.toFloat(),
+                intArrayOf(
+                    context.getColorRes(R.color.colorGreenLight),
+                    context.getColorRes(R.color.colorGreen),
+                    context.getColorRes(R.color.colorGreen)
+                ),
+                null,
+                Shader.TileMode.MIRROR
+            )
+        )
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -226,6 +273,7 @@ class SlideButtonView @JvmOverloads constructor(
             val eventY = event.y
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    drawShadow = true
                     lastX = eventX
                     if (!isDragComplete && isInsideCircle(
                             mCurrentCursorX,
@@ -246,6 +294,7 @@ class SlideButtonView @JvmOverloads constructor(
                     return true
                 }
                 MotionEvent.ACTION_UP -> {
+                    drawShadow = false
                     onActionUp()
                     return true
                 }

@@ -4,5 +4,9 @@
     <color name="colorPrimaryDark">#00574B</color>
     <color name="colorAccent">#D81B60</color>
 
-    <color name="colorGreen">#00b13f</color>
+<!--    <color name="colorGreen">#00b13f</color>-->
+    <color name="colorGreen">#04b34c</color>
+    <color name="colorGreenLight">#8004B34C</color>
+
+    <color name="shadow" >#33FFFFFF</color>
 </resources>
