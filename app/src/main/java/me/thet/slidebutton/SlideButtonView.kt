@@ -138,7 +138,7 @@ class SlideButtonView @JvmOverloads constructor(
 
 
         //draw the label
-        mLabelPaint.alpha = (255 - ((mDragPercent / 100) * 255))
+        mLabelPaint.alpha = (255 - ((mDragPercent / 100f) * 255f)).toInt()
         Logger.d("percent => " + mDragPercent)
         canvas.drawText("Order Collected", mLabelStartX, mLabelStartY, mLabelPaint)
 
@@ -164,6 +164,17 @@ class SlideButtonView @JvmOverloads constructor(
             mDrawableCursor?.draw(canvas)
         }
 
+
+        //draw overlay layer
+/*        canvas.drawRoundRect(
+            0f,
+            0f,
+            mCurrentCursorX - (mDrawableSize / 2),
+            height.toFloat(),
+            mContainerBorderRadius,
+            mContainerBorderRadius,
+            mContainerPaint
+        )*/
 
         //progress circle ( will appear after dragged 100%
         mProgressPaint.alpha = mProgressAlpha
