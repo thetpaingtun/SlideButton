@@ -20,13 +20,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
-        /*     root.setOnTouchListener { v, event ->
-                 Log.d("Test", "=> ${event.x}")
-                 return@setOnTouchListener true
-             }*/
-
-
+        
 /*
         btn.setOnTouchListener { v, event ->
             if (event.action == MotionEvent.ACTION_DOWN) {
@@ -37,6 +31,10 @@ class MainActivity : AppCompatActivity() {
                 return@setOnTouchListener true
             } else return@setOnTouchListener false
         }*/
+    }
+
+    fun reset(view: View) {
+        setContentView(R.layout.activity_main)
     }
 
 }

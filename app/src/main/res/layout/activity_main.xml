@@ -7,13 +7,12 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <ImageView
-        android:id="@+id/avd"
+    <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="48dp"
-        android:src="@drawable/avd_progress"
-        app:layout_constraintLeft_toLeftOf="parent"
+        android:onClick="reset"
+        android:text="RESET"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <me.thet.slidebutton.SlideButtonView
