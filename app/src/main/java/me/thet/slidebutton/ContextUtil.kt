@@ -14,7 +14,7 @@ import android.content.Context
  * @param sp to be converted
  * @return px
  */
-private fun Context.sp(sp: Float): Float {
+fun Context.sp(sp: Float): Float {
     return resources.displayMetrics.scaledDensity * sp
 }
 

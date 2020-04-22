@@ -20,56 +20,66 @@ class SlideButtonView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private var mProgressSweepAngle: Float = 240f
-    private var mProgressStartAngle: Float = 0f
-    private var mProgressAlpha: Int = 0
-    private lateinit var mProgressRect: RectF
-    private var mDrawableArrow: Drawable?
-    private var drawableSize: Float
-
-    private var mProgressDrawable: Drawable?
-    private var progressDrawableSize: Float
-
-    private var containerBorderRadius: Float = 0f
-    private var innerBorderRadius: Float = 0f
-    private var MARGIN_BETWEEN_OUTER_INNER = context.dp(6f)
-
-    private val path: Path
-    private val paint: Paint
-    private val containerPaint: Paint
-    private val progressPaint: Paint
-
-    private val vc: ViewConfiguration
-    private val touchSlop: Int
-
-    private var outContainerPos = 0f
-
-    private var mCurrentCx: Float = 0f
-        set(value) {
-            field = value
-            mDragPercent = (((field - mCxStart) / (mCxEnd - mCxStart)) * 100).toInt()
-        }
-    private var mInitCy: Float = 0f
-
-    //the range that inner circle can be dragged
-    private var mCxStart: Float = 0.0f
-    private var mCxEnd: Float = 0f
-
-    private var mDragPercent = 0
-
+    private var MARGIN_BETWEEN_CONTAINER_CURSOR = context.dp(6f)
 
     private val DEFAULT_HEIGHT = context.dp(65f).toInt()
     private val DEFAULT_WIDTH = context.dp(300f).toInt()
 
+
+    private var mProgressSweepAngle: Float = 240f
+    private var mProgressStartAngle: Float = 0f
+    private var mProgressAlpha: Int = 0
+    private lateinit var mProgressRect: RectF
+    private var mProgressDrawableSize: Float
+
+    private var mCursorCircleBorderRadius: Float = 0f
+
+
+    private var mDrawableCursor: Drawable?
+    private var mDrawableSize: Float
+
+
+    private var mContainerBorderRadius: Float = 0f
+    private var mContainerPos = 0f
+
+
+    private val mCursorPaint: Paint
+    private val mContainerPaint: Paint
+    private val mProgressPaint: Paint
+    private val mLabelPaint: Paint
+
+    private val vc: ViewConfiguration
+    private val touchSlop: Int
+
+
+    private var mCurrentCursorX: Float = 0f
+        set(value) {
+            field = value
+            mDragPercent = (((field - mCursorStartX) / (mCursorEndX - mCursorStartX)) * 100).toInt()
+            if (mDragPercent > 100 || mDragPercent < 0) {
+                mDragPercent = 0
+            }
+        }
+    private var mCursorY: Float = 0f
+
+    //the range that cursor circle can be dragged
+    private var mCursorStartX: Float = 0.0f
+    private var mCursorEndX: Float = 0f
+
+    private var mDragPercent = 0
+
+
     private var isDragComplete = false
-
-
     private var lastX = 0f
 
 
+    private var label = "Order Collected"
+    private var mLabelStartX: Float = 0f
+    private var mLabelStartY: Float = 0f
+
+
     init {
-        path = Path()
-        paint = Paint().apply {
+        mCursorPaint = Paint().apply {
             strokeWidth = 6f
             color = Color.WHITE
             isAntiAlias = true
@@ -77,28 +87,32 @@ class SlideButtonView @JvmOverloads constructor(
             strokeJoin = Paint.Join.ROUND
         }
 
-        containerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        mContainerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
             .apply {
                 color = ContextCompat.getColor(context, R.color.colorGreen)
                 style = Paint.Style.FILL
             }
 
-        progressPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        mProgressPaint = Paint(Paint.ANTI_ALIAS_FLAG)
             .apply {
                 color = Color.WHITE
                 strokeWidth = context.dp(4f)
                 style = Paint.Style.STROKE
             }
 
-        drawableSize = context.dp(20f)
-        progressDrawableSize = context.dp(24f)
+        mLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = context.sp(14f)
+            color = Color.WHITE
+        }
+
+        mDrawableSize = context.dp(20f)
+        mProgressDrawableSize = context.dp(24f)
 
         vc = ViewConfiguration.get(context)
         touchSlop = vc.scaledTouchSlop
 
 
-        mDrawableArrow = ContextCompat.getDrawable(context, R.drawable.ic_arrows)
-        mProgressDrawable = ContextCompat.getDrawable(context, R.drawable.ic_progress_circle)
+        mDrawableCursor = ContextCompat.getDrawable(context, R.drawable.ic_arrows)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -110,26 +124,35 @@ class SlideButtonView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas?) {
         if (canvas == null) return
 
+
+        //outer container
         canvas.drawRoundRect(
-            0f + outContainerPos,
+            0f + mContainerPos,
             0f,
-            width.toFloat() - outContainerPos,
+            width.toFloat() - mContainerPos,
             height.toFloat(),
-            containerBorderRadius,
-            containerBorderRadius,
-            containerPaint
+            mContainerBorderRadius,
+            mContainerBorderRadius,
+            mContainerPaint
         )
 
 
-        canvas.drawCircle(mCurrentCx, mInitCy, innerBorderRadius, paint)
+        //draw the label
+        mLabelPaint.alpha = (255 - ((mDragPercent / 100) * 255))
+        Logger.d("percent => " + mDragPercent)
+        canvas.drawText("Order Collected", mLabelStartX, mLabelStartY, mLabelPaint)
+
+        //base cursor circle
+        canvas.drawCircle(mCurrentCursorX, mCursorY, mCursorCircleBorderRadius, mCursorPaint)
 
 
-        val left = (mCurrentCx - (drawableSize / 2)).toInt()
-        val top = (mInitCy - (drawableSize / 2)).toInt()
-        val right = left + drawableSize.toInt()
-        val bottom = top + drawableSize.toInt()
+        //draw cursor icon
+        val left = (mCurrentCursorX - (mDrawableSize / 2)).toInt()
+        val top = (mCursorY - (mDrawableSize / 2)).toInt()
+        val right = left + mDrawableSize.toInt()
+        val bottom = top + mDrawableSize.toInt()
 
-        mDrawableArrow?.setBounds(
+        mDrawableCursor?.setBounds(
             left,
             top,
             right,
@@ -137,21 +160,17 @@ class SlideButtonView @JvmOverloads constructor(
         )
 
 
-        if (innerBorderRadius != 0f) {
-            mDrawableArrow?.draw(canvas)
+        if (mCursorCircleBorderRadius != 0f) {
+            mDrawableCursor?.draw(canvas)
         }
 
 
-        progressPaint.alpha = mProgressAlpha
+        //progress circle ( will appear after dragged 100%
+        mProgressPaint.alpha = mProgressAlpha
         canvas.drawArc(
             mProgressRect, mProgressStartAngle,
-            mProgressSweepAngle, false, progressPaint
+            mProgressSweepAngle, false, mProgressPaint
         )
-
-/*        canvas.save()
-        canvas.rotate(progressDegree, mProgressRect.left.toFloat(), mProgressRect.top.toFloat())
-        mProgressDrawable?.draw(canvas)
-        canvas.restore()*/
 
 
     }
@@ -159,27 +178,35 @@ class SlideButtonView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        containerBorderRadius = (height.toFloat() / 2)
+        mContainerBorderRadius = (height.toFloat() / 2)
 
-        innerBorderRadius = containerBorderRadius - MARGIN_BETWEEN_OUTER_INNER
+        mCursorCircleBorderRadius = mContainerBorderRadius - MARGIN_BETWEEN_CONTAINER_CURSOR
 
 
-        mCurrentCx = innerBorderRadius + MARGIN_BETWEEN_OUTER_INNER
-        mInitCy = h / 2f
+        mCurrentCursorX = mCursorCircleBorderRadius + MARGIN_BETWEEN_CONTAINER_CURSOR
+        mCursorY = h / 2f
 
-        mCxStart = mCurrentCx
-        mCxEnd = w - MARGIN_BETWEEN_OUTER_INNER - innerBorderRadius
+        mCursorStartX = mCurrentCursorX
+        mCursorEndX = w - MARGIN_BETWEEN_CONTAINER_CURSOR - mCursorCircleBorderRadius
 
-        val progressLeft = (width / 2) - (progressDrawableSize / 2)
-        val progressRight = progressLeft + progressDrawableSize
-        val progressTop = (height / 2) - (progressDrawableSize / 2)
-        val progressBottom = progressTop + progressDrawableSize
+        val progressLeft = (width / 2) - (mProgressDrawableSize / 2)
+        val progressRight = progressLeft + mProgressDrawableSize
+        val progressTop = (height / 2) - (mProgressDrawableSize / 2)
+        val progressBottom = progressTop + mProgressDrawableSize
         mProgressRect = RectF(
             progressLeft,
             progressTop,
             progressRight,
             progressBottom
         )
+
+        val labelWidth = mLabelPaint.measureText(label)
+        val labelBound = Rect()
+        mLabelPaint.getTextBounds(label, 0, label.length, labelBound)
+        val labelHeight = labelBound.height()
+
+        mLabelStartX = (width / 2) - (labelWidth / 2)
+        mLabelStartY = (height / 2) + (labelHeight / 2f)
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -190,11 +217,11 @@ class SlideButtonView @JvmOverloads constructor(
                 MotionEvent.ACTION_DOWN -> {
                     lastX = eventX
                     if (!isDragComplete && isInsideCircle(
-                            mCurrentCx,
-                            mInitCy,
+                            mCurrentCursorX,
+                            mCursorY,
                             eventX,
                             eventY,
-                            innerBorderRadius
+                            mCursorCircleBorderRadius
                         )
                     ) {
                         return true
@@ -228,12 +255,12 @@ class SlideButtonView @JvmOverloads constructor(
     private fun onDragCompleted() {
         isDragComplete = true
 
-        val innerCircleAnimator = ValueAnimator.ofFloat(innerBorderRadius, 0f)
+        val innerCircleAnimator = ValueAnimator.ofFloat(mCursorCircleBorderRadius, 0f)
 
         //remove inner circle
         innerCircleAnimator.apply {
             addUpdateListener {
-                innerBorderRadius = it.animatedValue as Float
+                mCursorCircleBorderRadius = it.animatedValue as Float
                 invalidate()
             }
             startDelay = 100
@@ -244,7 +271,7 @@ class SlideButtonView @JvmOverloads constructor(
         //collapse container
         val collapseAnimator = ValueAnimator.ofFloat(0f, (width - height) / 2f)
         collapseAnimator.addUpdateListener {
-            outContainerPos = it.animatedValue as Float
+            mContainerPos = it.animatedValue as Float
             invalidate()
         }
 
@@ -282,10 +309,10 @@ class SlideButtonView @JvmOverloads constructor(
     }
 
     private fun rollBackToStartPosition() {
-        val animator = ValueAnimator.ofFloat(mCurrentCx, mCxStart)
+        val animator = ValueAnimator.ofFloat(mCurrentCursorX, mCursorStartX)
 
         animator.addUpdateListener {
-            mCurrentCx = it.animatedValue as Float
+            mCurrentCursorX = it.animatedValue as Float
             invalidate()
         }
 
@@ -294,13 +321,13 @@ class SlideButtonView @JvmOverloads constructor(
     }
 
     private fun movePosition(diff: Float) {
-        val newPos = mCurrentCx + diff
-        mCurrentCx += diff
-        mCurrentCx =
-            if (newPos < mCxStart) {
-                mCxStart
-            } else if (newPos > mCxEnd) {
-                mCxEnd
+        val newPos = mCurrentCursorX + diff
+        mCurrentCursorX += diff
+        mCurrentCursorX =
+            if (newPos < mCursorStartX) {
+                mCursorStartX
+            } else if (newPos > mCursorEndX) {
+                mCursorEndX
             } else {
                 newPos
             }
