@@ -20,6 +20,10 @@ class SlideButtonView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    private var mPrimaryColorLight: Int = 0
+    private var mPrimaryColor: Int = 0
+    private var mColorOnPrimary: Int = 0
+
     private var MARGIN_BETWEEN_CONTAINER_CURSOR = context.dp(6f)
     private var MARGIN_BETWEEN_CURSOR_SHADOW = context.dp(10f)
 
@@ -78,15 +82,35 @@ class SlideButtonView @JvmOverloads constructor(
     private var lastX = 0f
 
 
-    private var label = "Order Collected"
+    private var mLabel = "Order Collected"
     private var mLabelStartX: Float = 0f
     private var mLabelStartY: Float = 0f
+    private var mLabelSize: Float
 
 
     init {
+
+        mCursorDrawableSize = context.dp(20f)
+        mProgressDrawableSize = context.dp(24f)
+
+
+        mDrawableCursor = ContextCompat.getDrawable(context, R.drawable.ic_arrows)
+
+
+        vc = ViewConfiguration.get(context)
+        touchSlop = vc.scaledTouchSlop
+
+
+        mLabelSize = context.sp(14f)
+
+        retrieveAttrs(attrs)
+
+        mDrawableCursor?.setTint(mPrimaryColor)
+
+
         mCursorPaint = Paint().apply {
             strokeWidth = 6f
-            color = Color.WHITE
+            color = mColorOnPrimary
             isAntiAlias = true
             style = Paint.Style.FILL_AND_STROKE
             strokeJoin = Paint.Join.ROUND
@@ -94,35 +118,70 @@ class SlideButtonView @JvmOverloads constructor(
 
         mContainerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
             .apply {
-                color = ContextCompat.getColor(context, R.color.colorGreen)
+                color = mPrimaryColor
                 style = Paint.Style.FILL
             }
 
         mProgressPaint = Paint(Paint.ANTI_ALIAS_FLAG)
             .apply {
-                color = Color.WHITE
+                color = mColorOnPrimary
                 strokeWidth = context.dp(4f)
                 style = Paint.Style.STROKE
             }
 
         mLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = context.sp(14f)
-            color = Color.WHITE
+            textSize = mLabelSize
+            color = mColorOnPrimary
         }
 
         mShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = context.getColorRes(R.color.colorGreen)
+            color = mPrimaryColor
             style = Paint.Style.FILL
         }
 
-        mCursorDrawableSize = context.dp(20f)
-        mProgressDrawableSize = context.dp(24f)
+    }
 
-        vc = ViewConfiguration.get(context)
-        touchSlop = vc.scaledTouchSlop
+    private fun retrieveAttrs(attrs: AttributeSet?) {
+        context.theme.obtainStyledAttributes(attrs, R.styleable.SlideButtonView, 0, 0).apply {
+            try {
+                mDrawableCursor =
+                    getDrawable(R.styleable.SlideButtonView_sb_cursor_icon) ?: mDrawableCursor
 
+                mCursorDrawableSize =
+                    getDimension(
+                        R.styleable.SlideButtonView_sb_cursor_icon_size,
+                        mCursorDrawableSize
+                    )
 
-        mDrawableCursor = ContextCompat.getDrawable(context, R.drawable.ic_arrows)
+                mProgressDrawableSize = getDimension(
+                    R.styleable.SlideButtonView_sb_progress_icon_size,
+                    mProgressDrawableSize
+                )
+
+                mLabel = getString(R.styleable.SlideButtonView_sb_label) ?: mLabel
+
+                mLabelSize = getDimension(R.styleable.SlideButtonView_sb_label_size, mLabelSize)
+
+                mPrimaryColor =
+                    getColor(
+                        R.styleable.SlideButtonView_sb_primary_color,
+                        context.getColorRes(R.color.colorGreen)
+                    )
+
+                mPrimaryColorLight = getColor(
+                    R.styleable.SlideButtonView_sb_primary_color_light,
+                    context.getColorRes(R.color.colorGreenLight)
+                )
+
+                mColorOnPrimary = getColor(
+                    R.styleable.SlideButtonView_sb_color_on_primary,
+                    context.getColorRes(R.color.white)
+                )
+
+            } finally {
+                recycle()
+            }
+        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -146,12 +205,9 @@ class SlideButtonView @JvmOverloads constructor(
             mContainerPaint
         )
 
-
         //draw the label
-        mLabelPaint.alpha = (255 - ((mDragPercent / 100f) * 255f)).toInt()
-        Logger.d("percent => " + mDragPercent)
-        canvas.drawText("Order Collected", mLabelStartX, mLabelStartY, mLabelPaint)
-
+        mLabelPaint.alpha = ((100f - mDragPercent) / 100f * 255f).toInt()
+        canvas.drawText(mLabel, mLabelStartX, mLabelStartY, mLabelPaint)
 
         if (drawShadow) {
             var cursorShadowRight =
@@ -197,17 +253,6 @@ class SlideButtonView @JvmOverloads constructor(
         }
 
 
-        //draw overlay layer
-/*        canvas.drawRoundRect(
-            0f,
-            0f,
-            mCurrentCursorX - (mDrawableSize / 2),
-            height.toFloat(),
-            mContainerBorderRadius,
-            mContainerBorderRadius,
-            mContainerPaint
-        )*/
-
         //progress circle ( will appear after dragged 100%)
         mProgressPaint.alpha = mProgressAlpha
         canvas.drawArc(
@@ -241,9 +286,9 @@ class SlideButtonView @JvmOverloads constructor(
             progressBottom
         )
 
-        val labelWidth = mLabelPaint.measureText(label)
+        val labelWidth = mLabelPaint.measureText(mLabel)
         val labelBound = Rect()
-        mLabelPaint.getTextBounds(label, 0, label.length, labelBound)
+        mLabelPaint.getTextBounds(mLabel, 0, mLabel.length, labelBound)
         val labelHeight = labelBound.height()
 
         mLabelStartX = (width / 2) - (labelWidth / 2)
@@ -257,9 +302,9 @@ class SlideButtonView @JvmOverloads constructor(
                 width.toFloat(),
                 height.toFloat(),
                 intArrayOf(
-                    context.getColorRes(R.color.colorGreenLight),
-                    context.getColorRes(R.color.colorGreen),
-                    context.getColorRes(R.color.colorGreen)
+                    mPrimaryColorLight,
+                    mPrimaryColor,
+                    mPrimaryColor
                 ),
                 null,
                 Shader.TileMode.MIRROR

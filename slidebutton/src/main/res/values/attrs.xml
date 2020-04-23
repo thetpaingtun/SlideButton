@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SlideButtonView">
+        <attr name="sb_cursor_icon" format="reference" />
+        <attr name="sb_cursor_icon_size" format="dimension" />
+
+        <attr name="sb_progress_icon_size" format="dimension" />
+
+
+        <attr name="sb_label" format="string" />
+        <attr name="sb_label_size" format="dimension" />
+
+
+        <attr name="sb_primary_color" format="color" />
+        <attr name="sb_primary_color_light" format="color" />
+        <attr name="sb_color_on_primary" format="color" />
+
+    </declare-styleable>
+
+</resources>

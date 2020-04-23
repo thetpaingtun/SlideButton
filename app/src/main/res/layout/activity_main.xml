@@ -18,12 +18,29 @@
     <me.thet.slidebutton.SlideButtonView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="48dp"
+        app:layout_constraintBottom_toTopOf="@id/sb1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <me.thet.slidebutton.SlideButtonView
+        android:id="@+id/sb1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_margin="24dp"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:sb_color_on_primary="@color/white"
+        app:sb_cursor_icon="@drawable/ic_forward"
+        app:sb_cursor_icon_size="20dp"
+        app:sb_label="Order Collected"
+        app:sb_label_size="14sp"
+        app:sb_primary_color="@color/colorRed"
+        app:sb_primary_color_light="@color/colorRedLight"
+        app:sb_progress_icon_size="24dp" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
