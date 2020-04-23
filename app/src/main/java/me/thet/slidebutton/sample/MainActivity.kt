@@ -1,17 +1,10 @@
-package me.thet.slidebutton
+package me.thet.slidebutton.sample
 
-import android.content.ClipData
-import android.graphics.drawable.Animatable2
-import android.graphics.drawable.AnimatedVectorDrawable
-import android.graphics.drawable.Drawable
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
-import android.view.MotionEvent
 import android.view.View
 import androidx.annotation.RequiresApi
-import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
