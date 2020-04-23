@@ -318,7 +318,6 @@ class SlideButtonView @JvmOverloads constructor(
             val eventY = event.y
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    drawShadow = true
                     lastX = eventX
                     if (!isDragComplete && isInsideCircle(
                             mCurrentCursorX,
@@ -328,6 +327,7 @@ class SlideButtonView @JvmOverloads constructor(
                             mCursorCircleBorderRadius
                         )
                     ) {
+                        drawShadow = true
                         return true
                     }
                 }
