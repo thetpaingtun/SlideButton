@@ -10,7 +10,7 @@ Slide button inspired from grab app.
 Include the following dependency build.gradle file
 
 ```
-me.thet.slideButtonView:SlideButtonView:1.0.0
+me.thet.slideButtonView:SlideButtonView:1.1.0
 ```
 
 ## Usage
