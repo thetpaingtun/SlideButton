@@ -37,6 +37,20 @@ Add SlideButtonView widget in your view
 | 8 |sb_color_on_primary |white|
 
 
+## Adding a drag listener
+
+```
+//inside Activity or Fragment
+protected void onCreate (Bundle savedInstanceState){
+    slideButtonView.setOnDragListener(new SlideButtonView.OnDragListener() {
+      @Override
+      public void onDragCompleted() {
+          //drag is completed
+      }
+  });
+}
+```
+
 ## MIT License
 
 Copyright (c) 2020 thetpaingtun
