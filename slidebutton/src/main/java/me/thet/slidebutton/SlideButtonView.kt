@@ -1,5 +1,7 @@
 package me.thet.slidebutton
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ValueAnimator
 import android.content.Context
@@ -87,6 +89,11 @@ class SlideButtonView @JvmOverloads constructor(
     private var mLabelStartY: Float = 0f
     private var mLabelSize: Float
 
+    var onDragListener: OnDragListener? = null
+
+    interface OnDragListener {
+        fun onDragCompleted()
+    }
 
     init {
 
@@ -295,20 +302,18 @@ class SlideButtonView @JvmOverloads constructor(
         mLabelStartY = (height / 2) + (labelHeight / 2f)
 
 
-        mContainerPaint.setShader(
-            LinearGradient(
-                0f,
-                0f,
-                width.toFloat(),
-                height.toFloat(),
-                intArrayOf(
-                    mPrimaryColorLight,
-                    mPrimaryColor,
-                    mPrimaryColor
-                ),
-                null,
-                Shader.TileMode.MIRROR
-            )
+        mContainerPaint.shader = LinearGradient(
+            0f,
+            0f,
+            width.toFloat(),
+            height.toFloat(),
+            intArrayOf(
+                mPrimaryColorLight,
+                mPrimaryColor,
+                mPrimaryColor
+            ),
+            null,
+            Shader.TileMode.MIRROR
         )
     }
 
@@ -410,7 +415,11 @@ class SlideButtonView @JvmOverloads constructor(
             progressAnimatorSet
         )
         animatorSet.start()
-
+        collapseAnimator.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator?) {
+                onDragListener?.onDragCompleted()
+            }
+        })
     }
 
     private fun rollBackToStartPosition() {

@@ -15,13 +15,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <me.thet.slidebutton.SlideButtonView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="48dp"
-        app:layout_constraintBottom_toTopOf="@id/sb1"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
     <me.thet.slidebutton.SlideButtonView
         android:id="@+id/sb1"
@@ -42,5 +35,13 @@
         app:sb_primary_color_light="@color/colorRedLight"
         app:sb_progress_icon_size="24dp" />
 
+    <me.thet.slidebutton.SlideButtonView
+        android:id="@+id/sb2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="48dp"
+        app:layout_constraintBottom_toTopOf="@id/sb1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
